@@ -1,0 +1,9 @@
+# development mode
+# paths relative to location of setup.py
+-e ".[test]"
+
+-e ../../osparc-simcore/packages/s3wrapper/
+-e ../../osparc-simcore/packages/simcore-sdk/
+
+aiohttp-devtools==0.10.1
+autopep8>=1.3.5

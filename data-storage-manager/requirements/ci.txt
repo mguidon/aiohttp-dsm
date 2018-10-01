@@ -1,0 +1,6 @@
+# continuous integration mode
+# paths relative to location of setup.py
+.[test]
+
+../../osparc-simcore/packages/s3wrapper/
+../../osparc-simcore/packages/simcore-sdk/

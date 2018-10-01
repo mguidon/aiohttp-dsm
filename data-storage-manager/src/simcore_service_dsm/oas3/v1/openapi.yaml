@@ -1,0 +1,63 @@
+openapi: 3.0.0
+info:
+  version: '1.0.0-dev'
+  title: 'dsm-api'
+  description: 'dsm api'
+
+paths:
+  /:
+    get:
+      operationId: health_check
+      responses:
+        '200':
+          description: service health evaluated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthInfo'
+        default:
+          $ref: '#/components/responses/DefaultErrorResponse'
+
+components:
+  schemas:
+    HealthInfo:
+      type: object
+      properties:
+        name:
+          type: string
+          example: dsm service
+        status:
+          type: string
+          example: RUNNING
+        version:
+          type: string
+          example: 1.0.0-dev
+    ErrorModel:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+              type: string
+  responses:
+    DefaultErrorResponse:
+      description: Unexpected error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorModel'
+
+# Added by API Auto Mocking Plugin
+servers:
+  - description: Default server
+    url: http://{host}:{port}/{version}
+    variables:
+      host:
+        default: 'localhost'
+      port:
+        default: '8080'
+      version:
+        default: v1
+  - description: SwaggerHub API Auto Mocking
+    url: https://virtserver.swaggerhub.com/mguidon/dsm/1.0.0-dev
+    
