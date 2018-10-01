@@ -12,7 +12,7 @@ async def health_check(request):
         'name':__name__.split('.')[0], 
         'version': __version__,
         'status': 'RUNNING_FINE',
-        'last_access' : session.get("last", "first access")
+        'last_access' : session.get("last", -1.)
     }
 #    import pdb; pdb.set_trace()
     session["last"] = time.time()

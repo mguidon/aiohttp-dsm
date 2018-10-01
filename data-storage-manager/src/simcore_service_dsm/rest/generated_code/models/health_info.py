@@ -15,7 +15,7 @@ class HealthInfo(Model):
     Do not edit the class manually.
     """
 
-    def __init__(self, name=None, status=None, version=None):  # noqa: E501
+    def __init__(self, name=None, status=None, version=None, last_access=None):  # noqa: E501
         """HealthInfo - a model defined in OpenAPI
 
         :param name: The name of this HealthInfo.  # noqa: E501
@@ -24,22 +24,27 @@ class HealthInfo(Model):
         :type status: str
         :param version: The version of this HealthInfo.  # noqa: E501
         :type version: str
+        :param last_access: The last_access of this HealthInfo.  # noqa: E501
+        :type last_access: float
         """
         self.openapi_types = {
             'name': 'str',
             'status': 'str',
-            'version': 'str'
+            'version': 'str',
+            'last_access': 'float'
         }
 
         self.attribute_map = {
             'name': 'name',
             'status': 'status',
-            'version': 'version'
+            'version': 'version',
+            'last_access': 'last_access'
         }
 
         self._name = name
         self._status = status
         self._version = version
+        self._last_access = last_access
 
     @classmethod
     def from_dict(cls, dikt) -> 'HealthInfo':
@@ -114,3 +119,24 @@ class HealthInfo(Model):
         """
 
         self._version = version
+
+    @property
+    def last_access(self):
+        """Gets the last_access of this HealthInfo.
+
+
+        :return: The last_access of this HealthInfo.
+        :rtype: float
+        """
+        return self._last_access
+
+    @last_access.setter
+    def last_access(self, last_access):
+        """Sets the last_access of this HealthInfo.
+
+
+        :param last_access: The last_access of this HealthInfo.
+        :type last_access: float
+        """
+
+        self._last_access = last_access

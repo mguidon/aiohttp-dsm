@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  version: '1.0.0-dev'
+  version: '2.0.0'
   title: 'dsm-api'
   description: 'dsm api'
 
@@ -32,6 +32,9 @@ components:
         version:
           type: string
           example: 1.0.0-dev
+        last_access:
+          type: number
+          example: 123.122
     ErrorModel:
       type: object
       properties:

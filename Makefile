@@ -1,11 +1,11 @@
 #TODO
 
 
-rest:
-	@echo "TODO: automate call to codegen.sh for creating models"
+server-rest:
+	cd data-storage-manager/scripts && sh codegen.sh
 
 client-sdk:
-	@echo "TODO: create client sdk from oas3"
+	cd data-storage-manager-sdk && sh codegen.sh
 
 env:
 	python3 -m venv env
