@@ -8,7 +8,7 @@ from aiohttp import web
 from .db import setup_db
 from .rest import setup_rest, create_router
 from .session import setup_session
-
+from .settings import CONFIG_KEY
 
 log = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ def init_app(config):
     log.debug("Initializing app ... ")
 
     app = web.Application(router=create_router())
-    app["config"] = config
+    app[CONFIG_KEY] = config
     
 
     setup_db(app)

@@ -1,3 +1,9 @@
 {
-    "python.pythonPath": "${workspaceFolder}/env/bin/python"
+    "python.pythonPath": "${workspaceFolder}/env/bin/python",
+    "python.unitTest.pyTestArgs": [
+        "data-storage-manager"
+    ],
+    "python.unitTest.unittestEnabled": false,
+    "python.unitTest.nosetestsEnabled": false,
+    "python.unitTest.pyTestEnabled": true
 }

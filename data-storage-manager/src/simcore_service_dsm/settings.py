@@ -22,6 +22,8 @@ __version__ = "1.0"
 log = logging.getLogger(__name__)
 
 DEFAULT_CONFIG='config-test.yaml'
+CONFIG_KEY="config"
+
 
 _APP_SCHEMA = T.Dict({
     "host": T.IP,

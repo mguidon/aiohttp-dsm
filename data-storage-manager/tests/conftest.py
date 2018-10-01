@@ -2,10 +2,13 @@ import collections
 import logging
 import pathlib
 import sys
+import os
 
 import pytest
 
 import simcore_service_dsm
+
+import sqlalchemy as sa
 
 CURRENT_DIR = pathlib.Path(sys.argv[0] if __name__ == "__main__" else __file__).parent.absolute()
 log = logging.getLogger(__name__)
@@ -43,3 +46,42 @@ def is_responsive(url):
     except sa.exc.OperationalError:
         return False
     return True
+
+@pytest.fixture(scope='session')
+def docker_compose_file():
+    """
+      Path to docker-compose configuration files used for testing
+      - fixture defined in pytest-docker
+    """
+    old = os.environ.copy()
+    
+    os.environ['DATABASE']=DATABASE
+    os.environ['USER']=USER
+    os.environ['PASS']=PASS
+
+    dc_path = CURRENT_DIR / 'docker-compose.yml'
+
+    assert dc_path.exists()
+    yield str(dc_path)
+
+    os.environ = old
+
+@pytest.fixture(scope='session')
+def postgres_service(docker_services, docker_ip):
+    url = 'postgresql://{user}:{password}@{host}:{port}/{database}'.format(
+        user = USER,
+        password = PASS,
+        database = DATABASE,
+        host=docker_ip,
+        port=docker_services.port_for('postgres', 5432),
+    )
+
+    # Wait until service is responsive.
+    docker_services.wait_until_responsive(
+        check=lambda: is_responsive(url),
+        timeout=30.0,
+        pause=0.1,
+    )
+
+    return url
+
