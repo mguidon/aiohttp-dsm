@@ -34,6 +34,10 @@ async def run_test():
     )
 
     with api_client(cfg) as client:
+        session = client.rest_client.pool_manager
+        print("LEN", len(session.cookie_jar))
+        for cookie in session.cookie_jar:
+            print(cookie.key)
         api = simcore_dsm_sdk.DefaultApi(client)
         res = await api.health_check()
 

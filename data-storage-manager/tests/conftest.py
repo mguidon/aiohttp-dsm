@@ -10,6 +10,9 @@ import simcore_service_dsm
 
 import sqlalchemy as sa
 
+
+pytest_plugins = ("aiohttp",)
+
 CURRENT_DIR = pathlib.Path(sys.argv[0] if __name__ == "__main__" else __file__).parent.absolute()
 log = logging.getLogger(__name__)
 
@@ -55,9 +58,10 @@ def docker_compose_file():
     """
     old = os.environ.copy()
     
-    os.environ['DATABASE']=DATABASE
-    os.environ['USER']=USER
-    os.environ['PASS']=PASS
+    os.environ['POSTGRES_DB']=DATABASE
+    os.environ['POSTGRES_USER']=USER
+    os.environ['POSTGRES_PASSWORD']=PASS
+    os.environ['POSTGRES_ENDPOINT']="FOO"
 
     dc_path = CURRENT_DIR / 'docker-compose.yml'
 
@@ -85,3 +89,25 @@ def postgres_service(docker_services, docker_ip):
 
     return url
 
+
+def create_app():
+    from simcore_service_dsm.__main__ import parse
+    from simcore_service_dsm import app
+    cmd = "-c {}".format(CURRENT_DIR/"data/config-db.yaml").split()
+    config = parse(cmd)
+    return app.create(config)
+
+@pytest.fixture()
+def test_client(postgres_service, loop, aiohttp_client):
+    _app = create_app()
+    cli = loop.run_until_complete(aiohttp_client(_app))
+    print(cli.host, cli.port)
+    return cli
+
+
+@pytest.fixture()
+def test_server(postgres_service, loop, aiohttp_server):
+    _app = create_app()
+    server = loop.run_until_complete(aiohttp_server(_app))
+    print(server.host, server.port)
+    return server

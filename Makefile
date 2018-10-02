@@ -1,5 +1,8 @@
 #TODO
 
+install: env
+	. env/bin/activate && cd data-storage-manager && pip install -r requirements/dev.txt
+	. env/bin/activate && cd data-storage-manager-sdk/python && pip install .
 
 server-rest:
 	cd data-storage-manager/scripts && sh codegen.sh
@@ -15,5 +18,8 @@ env:
 
 clean:
 	@git clean -dxf -e .vscode/
+
+run-server:
+	. env/bin/activate && simcore-service-dsm
 
 .PHONY: rest client-sdk clean

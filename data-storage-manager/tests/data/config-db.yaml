@@ -1,0 +1,22 @@
+---
+version: "1.0"
+app:
+  host: 127.0.0.1
+  port: 8080
+  log_level: DEBUG
+  testing: True
+postgres:
+  database: ${POSTGRES_DB}
+  user: ${POSTGRES_USER}
+  password: ${POSTGRES_PASSWORD}
+  host: localhost
+  port: 5432
+  minsize: 1
+  maxsize: 5
+  endpoint: ${POSTGRES_ENDPOINT}
+s3:
+  access_key: '12345678'
+  bucket_name: simcore
+  endpoint: minio:9000
+  secret_key: '12345678'
+...
