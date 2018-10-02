@@ -1,15 +1,15 @@
 import collections
 import logging
+import os
 import pathlib
 import sys
-import os
 
 import pytest
-
-import simcore_service_dsm
-
+import requests
 import sqlalchemy as sa
 
+import simcore_service_dsm
+from s3wrapper.s3_client import S3Client
 
 pytest_plugins = ("aiohttp",)
 
@@ -40,7 +40,7 @@ DATABASE = 'aio_login_tests'
 USER = 'admin'
 PASS = 'admin'
 
-def is_responsive(url):
+def is_postgres_responsive(url):
     """Check if something responds to ``url``."""
     try:
         engine = sa.create_engine(url)
@@ -49,6 +49,17 @@ def is_responsive(url):
     except sa.exc.OperationalError:
         return False
     return True
+
+def is_responsive(url, code=200):
+    """Check if something responds to ``url``."""
+    try:
+        response = requests.get(url)
+        if response.status_code == code:
+            return True
+    except requests.exceptions.RequestException as _e:
+        pass
+    
+    return False
 
 @pytest.fixture(scope='session')
 def docker_compose_file():
@@ -82,7 +93,7 @@ def postgres_service(docker_services, docker_ip):
 
     # Wait until service is responsive.
     docker_services.wait_until_responsive(
-        check=lambda: is_responsive(url),
+        check=lambda: is_postgres_responsive(url),
         timeout=30.0,
         pause=0.1,
     )
@@ -111,3 +122,27 @@ def test_server(postgres_service, loop, aiohttp_server):
     server = loop.run_until_complete(aiohttp_server(_app))
     print(server.host, server.port)
     return server
+
+@pytest.fixture(scope="module")
+def s3_client(docker_ip, docker_services):
+    """wait for minio to be up"""
+
+    # Build URL to service listening on random port.
+    url = 'http://%s:%d/' % (
+        docker_ip,
+        docker_services.port_for('minio', 9000),
+    )
+
+    # Wait until service is responsive.
+    docker_services.wait_until_responsive(
+        check=lambda: is_responsive(url, 403),
+        timeout=30.0,
+        pause=0.1,
+    )
+
+    endpoint = '{ip}:{port}'.format(ip=docker_ip, port=docker_services.port_for('minio', 9000))
+    access_key = "12345678"
+    secret_key = "12345678"
+    secure = False
+    s3_client = S3Client(endpoint, access_key, secret_key, secure)
+    return s3_client

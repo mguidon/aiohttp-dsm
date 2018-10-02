@@ -6,7 +6,6 @@ from simcore_dsm_sdk import HealthInfo
 
 def test_table_creation(postgres_service):
     utils.create_tables(url=postgres_service)
-    a=12
 
 async def test_app(test_client):
     last_access = -2
@@ -35,9 +34,16 @@ async def test_api(test_server):
         assert isinstance(check, HealthInfo)
         assert check.last_access == -1
         
-        last_access = 0
+        #last_access = 0
         for _ in range(5):
             check = await api.health_check()
             print(check)
             #last_access < check.last_access
             last_access = check.last_access
+
+def test_s3(s3_client):
+    bucket_name = "simcore-test"
+    assert s3_client.create_bucket(bucket_name)
+    assert s3_client.exists_bucket(bucket_name)
+    s3_client.remove_bucket(bucket_name, delete_contents=True)
+    assert not s3_client.exists_bucket(bucket_name)

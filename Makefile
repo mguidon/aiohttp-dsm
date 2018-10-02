@@ -22,4 +22,7 @@ clean:
 run-server:
 	. env/bin/activate && simcore-service-dsm
 
+test:
+	pytest -s data-storage-manager/tests
+
 .PHONY: rest client-sdk clean
