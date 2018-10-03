@@ -30,6 +30,13 @@ def api_client(cfg: simcore_dsm_sdk.Configuration) -> simcore_dsm_sdk.ApiClient:
 def bucket_name():
     return "simcore-testing"
 
+def drop_tables(url, engine=None):
+    meta = sa.MetaData()
+    if not engine:
+        engine = sa.create_engine(url)
+
+    meta.drop_all(bind=engine, tables=[file_meta_data])
+
 def insert_metadata(url: str, object_name: str, bucket_name: str, file_id: str, file_name: str, user_id: int, user_name: str, location: str, project_id: int, 
     project_name: str, node_id: int, node_name: str):
     ins = file_meta_data.insert().values(object_name=object_name,

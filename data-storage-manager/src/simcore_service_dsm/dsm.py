@@ -12,7 +12,6 @@ from operator import itemgetter
 
 from typing import List, Tuple
 FileMetaDataVec = List[FileMetaData]
-Query = Tuple[str, str] # attibute name, regex
 
 class Dsm:
     def __init__(self, db_endpoint: str, s3_client: S3Client):

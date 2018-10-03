@@ -166,7 +166,7 @@ def tmp_files(tmpdir_factory):
     return _create_files
 
 
-@pytest.fixture()
+@pytest.fixture(scope="function")
 def dsm_mockup_db(postgres_service, s3_client, tmp_files):
     utils.create_tables(url=postgres_service)
     bucket_name = utils.bucket_name()
@@ -226,4 +226,7 @@ def dsm_mockup_db(postgres_service, s3_client, tmp_files):
         total_count = total_count + 1
 
     assert total_count == N
-    return data
+    yield data
+
+    s3_client.remove_bucket(bucket_name, delete_contents=True)
+    utils.drop_tables(url=postgres_service)
