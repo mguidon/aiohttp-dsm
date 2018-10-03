@@ -14,6 +14,26 @@ from typing import List, Tuple
 FileMetaDataVec = List[FileMetaData]
 
 class Dsm:
+    """ Data storage manager
+
+        The dsm has access to the database for all meta data and to the actual backend. For now this
+        is simcore's S3 [minio] and the datcore storage facilities.
+
+        The dsm provides the following functionalities:
+
+        - listing of folders for a given users, optionally filtered using a regular expression and optionally
+          sorted by one of the meta data keys
+        - upload/download of files 
+
+            client -> S3 : presigned upload link
+            S3 -> client : presigned download link
+            datcore -> client: presigned download link
+            S3 -> datcore: local copy and then upload via their api
+
+        Note: Ideally the dsm should also offer streaming
+
+        Platform services should also use the presigned links for up/downloads
+    """
     def __init__(self, db_endpoint: str, s3_client: S3Client):
         self.db_endpoint = db_endpoint
         self.s3_client = s3_client
@@ -44,7 +64,6 @@ class Dsm:
         
         return data
 
-
     async def delete_file(self, user_id: int, location: str, file_id: str):
         # get the file path
         async with create_engine(self.db_endpoint) as engine:
@@ -59,7 +78,6 @@ class Dsm:
                         if self.s3_client.remove_objects(d.bucket_name, [d.object_name]):
                             stmt = file_meta_data.delete().where(file_meta_data.c.file_id == file_id)
                             await conn.execute(stmt) 
-
 
     def upload_file(self):
         pass
