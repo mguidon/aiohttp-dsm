@@ -3,13 +3,17 @@ import logging
 import os
 import pathlib
 import sys
+import uuid
+from random import randrange
 
 import pytest
 import requests
 import sqlalchemy as sa
-
+import utils
 import simcore_service_dsm
 from s3wrapper.s3_client import S3Client
+
+from simcore_service_dsm.models import FileMetaData
 
 pytest_plugins = ("aiohttp",)
 
@@ -146,3 +150,80 @@ def s3_client(docker_ip, docker_services):
     secure = False
     s3_client = S3Client(endpoint, access_key, secret_key, secure)
     return s3_client
+
+@pytest.fixture(scope="function")
+def tmp_files(tmpdir_factory):
+    def _create_files(N):
+        filepaths = []
+        for _i in range(N):
+            name = str(uuid.uuid4())
+            filepath = os.path.normpath(str(tmpdir_factory.mktemp('data').join(name + ".txt")))
+            with open(filepath, 'w') as fout:
+                fout.write("Hello world\n")
+            filepaths.append(filepath)
+
+        return filepaths
+    return _create_files
+
+
+@pytest.fixture()
+def dsm_mockup_db(postgres_service, s3_client, tmp_files):
+    utils.create_tables(url=postgres_service)
+    bucket_name = utils.bucket_name()
+    s3_client.create_bucket(bucket_name, delete_contents_if_exists=True)
+
+    users = [ 'alice', 'bob', 'chuck', 'dennis']
+
+    projects = ['astronomy', 'biology', 'chemistry', 'dermatology', 'economics', 'futurology', 'geology']
+    location = "simcore.s3"
+
+    nodes = ['alpha', 'beta', 'gamma', 'delta']
+
+    N = 100
+
+    files = tmp_files(N)
+    counter = 0
+    data = {}
+    for _file in files:
+        idx = randrange(len(users))
+        user = users[idx]
+        user_id = idx + 10
+        idx =  randrange(len(projects))
+        project = projects[idx]
+        project_id = idx + 100
+        idx =  randrange(len(nodes))
+        node = nodes[idx]
+        node_id = idx + 10000
+        file_id = str(uuid.uuid4())
+        file_name = str(counter)
+        counter = counter + 1
+        object_name = os.path.join(str(project_id), str(node_id), str(counter))
+        assert s3_client.upload_file(bucket_name, object_name, _file)
+
+
+        d = { 'object_name' : object_name,
+              'bucket_name' : bucket_name, 
+              'file_id' : file_id,
+              'file_name' : file_name,
+              'user_id' : user_id,
+              'user_name' : user,
+              'location' : location,
+              'project_id' : project_id,
+              'project_name' : project,
+              'node_id' : node_id,
+              'node_name' : node
+             }
+
+        data[object_name] = FileMetaData(**d)
+
+
+        utils.insert_metadata(postgres_service, object_name, bucket_name, file_id, file_name, user_id,
+            user, location, project_id, project, node_id, node)
+
+   
+    total_count = 0
+    for _obj in s3_client.list_objects_v2(bucket_name, recursive = True):
+        total_count = total_count + 1
+
+    assert total_count == N
+    return data

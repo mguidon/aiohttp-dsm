@@ -6,6 +6,9 @@ install: env
 
 server-rest:
 	cd data-storage-manager/scripts && sh codegen.sh
+	rm data-storage-manager/src/simcore_service_dsm/rest/generated_code/routing.py
+	rm data-storage-manager/src/simcore_service_dsm/rest/handlers.py
+	git checkout data-storage-manager/src/simcore_service_dsm/rest/__init__.py
 
 client-sdk:
 	cd data-storage-manager-sdk && sh codegen.sh
