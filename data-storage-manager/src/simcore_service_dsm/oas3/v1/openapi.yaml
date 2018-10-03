@@ -166,7 +166,7 @@ components:
           type: string
           example : simcore.s3
   
-  d:
+  requestBodies:
     FileMetaData:
       content:
         application/json:
