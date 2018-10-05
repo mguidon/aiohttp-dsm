@@ -21,6 +21,30 @@ file_meta_data = sa.Table(
 )
 
 class FileMetaData:
+    """ This is a proposal, probably no everything is needed.
+
+
+        for simcore.s3: 
+            bucket_name = "simcore", probably fixed  
+            object_name = proj_id/node_id/file_name ? can also be a uuid because we still have the filename?
+            file_id = unique identifier
+            file_name = the acutal filename (this may be different from what we store in s3)
+            user_id = unique id of the owner of the file --> maps to the user database
+            user_name = name of the owner
+            location = "simcore.s3" for now, there might be more to come
+            project_id = the project that owns this file --> might become a list
+            project_name = name of the poject --> userful for frontend to display folders
+            node_id = the node_id within the project, again, might be a list?
+            node_name = the name of the node (might be useful for searching previously used files given the name of a service)
+
+        for datcore:
+            bucket_name = dataset_name
+            object_name = filename (including potentially a collection if they still support that)
+            file_name = filename
+
+            # dat core allows to attach metadata to files --> see datcore.py
+        """
+
     def __init__(self, object_name: str, bucket_name ="", file_id: str="", file_name: str="", user_id: int=-1, user_name: str="", location: str="", project_id: int=-1,
             project_name: str="", node_id: int=-1, node_name: str="", **kargs):
         

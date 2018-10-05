@@ -19,6 +19,15 @@ env:
 	env/bin/pip3 install pylint autopep8
 	@echo "To activate the venv, execute 'source env/bin/activate' or 'env/bin/activate.bat' (WIN)"
 
+env2:
+	virtualenv --python=/usr/bin/python2.7 env2
+	env2/bin/pip install --upgrade pip wheel setuptools
+	env2/bin/pip install pylint autopep8
+	@echo "To activate the venv, execute 'source env2/bin/activate' or 'env2/bin/activate.bat' (WIN)"
+
+install2: env2
+	env2/bin/pip install -r requirements2.txt
+
 clean:
 	@git clean -dxf -e .vscode/
 

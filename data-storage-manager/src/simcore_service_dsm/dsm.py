@@ -1,16 +1,18 @@
+import asyncio
+import os
+import re
+from operator import itemgetter
+from typing import List, Tuple
+
+import sqlalchemy as sa
+from aiopg.sa import create_engine
+
 from s3wrapper.s3_client import S3Client
 
-import asyncio
-from aiopg.sa import create_engine
+from .datcore_wrapper import DatcoreWrapper
 
 from .models import FileMetaData, file_meta_data
 
-import sqlalchemy as sa
-
-import re
-from operator import itemgetter
-
-from typing import List, Tuple
 FileMetaDataVec = List[FileMetaData]
 
 class Dsm:
@@ -19,34 +21,57 @@ class Dsm:
         The dsm has access to the database for all meta data and to the actual backend. For now this
         is simcore's S3 [minio] and the datcore storage facilities.
 
-        The dsm provides the following functionalities:
+        For all data that is in-house (simcore.s3, ...) we keep a synchronized database with meta information
+        for the physical files. 
+
+        For physical changes on S3, that might be time-consuming, the db keeps a state (delete and upload mostly)
+
+        The dsm provides the following additional functionalities:
 
         - listing of folders for a given users, optionally filtered using a regular expression and optionally
           sorted by one of the meta data keys
+
         - upload/download of files 
 
             client -> S3 : presigned upload link
             S3 -> client : presigned download link
             datcore -> client: presigned download link
             S3 -> datcore: local copy and then upload via their api
+        
+        minio/S3 and postgres can talk nicely with each other via Notifications using rabbigMQ which we already have.
+        See:
 
-        Note: Ideally the dsm should also offer streaming
+            https://blog.minio.io/part-5-5-publish-minio-events-via-postgresql-50f6cc7a7346
+            https://docs.minio.io/docs/minio-bucket-notification-guide.html
 
-        Platform services should also use the presigned links for up/downloads
     """
     def __init__(self, db_endpoint: str, s3_client: S3Client):
         self.db_endpoint = db_endpoint
         self.s3_client = s3_client
 
     async def list_files(self, user_id: int, location: str, regex: str="", sortby: str="") -> FileMetaDataVec:
+        """ Returns a list of file paths
+            
+            Works for simcore.s3 and datcore
+
+            Can filter upon regular expression (for now only on key: value pairs of the FileMetaData)
+
+            Can sort results by key [assumes that sortby is actually a key in the FileMetaData]
+
+        """
         data = []
-        async with create_engine(self.db_endpoint) as engine:
-            async with engine.acquire() as conn:
-                query = sa.select([file_meta_data]).where(file_meta_data.c.user_id == user_id)
-                async for row in conn.execute(query):
-                    result_dict = dict(zip(row._result_proxy.keys, row._row))
-                    d = FileMetaData(**result_dict)
-                    data.append(d)
+        if location == "simcore.s3":
+            async with create_engine(self.db_endpoint) as engine:
+                async with engine.acquire() as conn:
+                    query = sa.select([file_meta_data]).where(file_meta_data.c.user_id == user_id)
+                    async for row in conn.execute(query):
+                        result_dict = dict(zip(row._result_proxy.keys, row._row))
+                        d = FileMetaData(**result_dict)
+                        data.append(d)
+        elif location == "datcore":
+            api_token, api_secret = await self._get_datcore_tokens(user_id)
+            dc = DatcoreWrapper(api_token, api_secret)
+            return dc.list_files(regex, sortby)
 
         if sortby:
             data = sorted(data, key=itemgetter(sortby)) 
@@ -64,23 +89,54 @@ class Dsm:
         
         return data
 
-    async def delete_file(self, user_id: int, location: str, file_id: str):
-        # get the file path
+    async def delete_file(self, user_id: int, location: str, fmd: FileMetaData):
+        """ Deletes a file given its fmd and location
+        
+            Additionally requires a user_id for 3rd party auth
+
+            For internal storage, the db state should be updated upon completion via
+            Notification mechanism
+
+            For simcore.s3 we can use the file_id
+            For datcore we need the full path
+        """
+        if location == "simcore.s3":
+            file_id = fmd.file_id
+            async with create_engine(self.db_endpoint) as engine:
+                async with engine.acquire() as conn:
+                    query = sa.select([file_meta_data]).where(file_meta_data.c.file_id == file_id)
+                    async for row in conn.execute(query):
+                        result_dict = dict(zip(row._result_proxy.keys, row._row))
+                        d = FileMetaData(**result_dict)
+                        # make sure this is the current user
+                        if d.user_id == user_id:
+                            # threaded please
+                            if self.s3_client.remove_objects(d.bucket_name, [d.object_name]):
+                                stmt = file_meta_data.delete().where(file_meta_data.c.file_id == file_id)
+                                await conn.execute(stmt) 
+
+        elif location == "datcore":
+            api_token, api_secret = await self._get_datcore_tokens(user_id)
+            dc = DatcoreWrapper(api_token, api_secret)
+            return dc.delete_file(fmd)
+
+
+    async def upload_file_to_datcore(self, user_id: int, local_file_path: str, remote_file_path: str, fmd: FileMetaData = None):
+        # uploads a locally available file to dat core given the storage path, optionally attached some meta data
+        tokens = await self._get_datcore_tokens(user_id)
+
+        pass
+
+    async def _get_datcore_tokens(self, user_id)->Tuple[str, str]:
+        # actually we have to query the master db
         async with create_engine(self.db_endpoint) as engine:
             async with engine.acquire() as conn:
-                query = sa.select([file_meta_data]).where(file_meta_data.c.file_id == file_id)
-                async for row in conn.execute(query):
-                    result_dict = dict(zip(row._result_proxy.keys, row._row))
-                    d = FileMetaData(**result_dict)
-                    # make sure this is the current user
-                    if d.user_id == user_id:
-                        # threaded please
-                        if self.s3_client.remove_objects(d.bucket_name, [d.object_name]):
-                            stmt = file_meta_data.delete().where(file_meta_data.c.file_id == file_id)
-                            await conn.execute(stmt) 
+                query = sa.select([file_meta_data]).where(file_meta_data.c.user_id == user_id)
+                _fmd = await conn.execute(query)
+                api_token = os.environ.get("BF_API_KEY", "none")
+                api_secret = os.environ.get("BF_API_SECRET", "none")
+                return (api_token, api_secret)
 
-    def upload_file(self):
-        pass
 
     def download_file(self):
         pass
