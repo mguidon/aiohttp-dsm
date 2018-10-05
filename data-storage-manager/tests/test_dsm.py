@@ -89,7 +89,7 @@ def create_file_on_s3(postgres_url, s3_client, tmp_file):
         }   
 
     fmd = FileMetaData(**d)
-
+    ## TODO: acutally upload the file gettin a upload link
     return fmd
 
 async def test_links_s3(postgres_service, s3_client, tmp_files):
@@ -114,7 +114,7 @@ async def test_links_s3(postgres_service, s3_client, tmp_files):
     assert filecmp.cmp(tmp_file2, tmp_file)
 
 
-#NOTE: Below test directly access the datcore platform, use with care!
+#NOTE: Below tests directly access the datcore platform, use with care!
 
 async def test_dsm_datcore(postgres_service, s3_client):
     utils.create_tables(url=postgres_service)

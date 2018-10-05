@@ -16,6 +16,7 @@ async def test_app(test_client):
         assert last_access < check["last_access"]
         last_access = check["last_access"]
 
+#FIXME: still not working because of cookies
 async def test_api(test_server):
     cfg = simcore_dsm_sdk.Configuration()
     cfg.host = cfg.host.format(

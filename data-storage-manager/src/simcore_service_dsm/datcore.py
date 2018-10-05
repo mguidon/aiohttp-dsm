@@ -1,3 +1,8 @@
+""" Python2 Datcore client wrapper for simcore
+
+    requires Blackfynn, check Makefile env2
+"""
+
 from blackfynn import Blackfynn
 from blackfynn.api.transfers import IOAPI
 
