@@ -127,7 +127,7 @@ class Dsm:
 
         pass
 
-    async def _get_datcore_tokens(self, user_id)->Tuple[str, str]:
+    async def _get_datcore_tokens(self, user_id: int)->Tuple[str, str]:
         # actually we have to query the master db
         async with create_engine(self.db_endpoint) as engine:
             async with engine.acquire() as conn:
@@ -138,9 +138,6 @@ class Dsm:
                 return (api_token, api_secret)
 
 
-    def download_file(self):
-        pass
-
     async def upload_link(self, fmd : FileMetaData):
          async with create_engine(self.db_endpoint) as engine:
             async with engine.acquire() as conn:
@@ -148,5 +145,11 @@ class Dsm:
                 await conn.execute(ins)
                 return self.s3_client.create_presigned_put_url(fmd.bucket_name, fmd.object_name)
         
-    def download_link(self, fmd : FileMetaData):
-        return self.s3_client.create_presigned_get_url(fmd.bucket_name, fmd.object_name)
+    async def download_link(self, user_id: int, fmd: FileMetaData, location: str)->str:
+        if location == "simcore.s3":
+            return self.s3_client.create_presigned_get_url(fmd.bucket_name, fmd.object_name)
+
+        elif location == "datcore":
+            api_token, api_secret = await self._get_datcore_tokens(user_id)
+            dc = DatcoreWrapper(api_token, api_secret)
+            return dc.download_link(fmd)

@@ -34,6 +34,8 @@ def call_python_2_script(script: str):
 class DatcoreWrapper(object):
     """ Wrapper to call the python2 api from datcore
 
+        Assumes that python 2 is installed in a virtual env
+
     """
     def __init__(self, api_token, api_secret):
         self.api_token = api_token
@@ -97,4 +99,26 @@ class DatcoreWrapper(object):
 
         return call_python_2_script(script)
 
+    def download_link(self, fmd):
+        dataset = fmd.bucket_name
+        file_name = fmd.object_name
+
+        script = """
+            from datcore import DatcoreClient
+            
+            api_token = "{0}"
+            api_secret = "{1}"
+
+            d_client = DatcoreClient(api_token=api_token, api_secret=api_secret,
+                host='https://api.blackfynn.io')
+       
+            ds = d_client.get_dataset("{2}")
+            url = ""
+            if ds is not None:
+                url = d_client.download_link(ds, "{3}")
+
+            channel.send(url)
+            """.format(self.api_token, self.api_secret, dataset, file_name)
+
+        return call_python_2_script(script)
       

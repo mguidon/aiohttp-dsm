@@ -106,7 +106,8 @@ async def test_links_s3(postgres_service, s3_client, tmp_files):
             pass
 
     tmp_file2 = tmp_file + ".rec"
-    down_url = dsm.download_link(fmd)
+    user_id = 0
+    down_url = await dsm.download_link(user_id, fmd, "simcore.s3")
 
     urllib.request.urlretrieve(down_url, tmp_file2)
 
@@ -142,16 +143,24 @@ async def test_dsm_s3_to_datcore(postgres_service, s3_client, tmp_files):
 
     # given the fmd, upload to datcore
     tmp_file2 = tmp_file + ".fordatcore"
-    down_url = dsm.download_link(fmd)
+    user_id = 0
+    down_url = await dsm.download_link(user_id, fmd, "simcore.s3" )
     urllib.request.urlretrieve(down_url, tmp_file2)
     fmd.location = "datcore"
-    # now we have the file locally, start external process to upload the file
-   
+    # now we have the file locally, upload the file
+    
 
 async def test_dsm_datcore_to_s3(postgres_service, s3_client, tmp_files):
-    pass
+    utils.create_tables(url=postgres_service)
+    dsm = Dsm(postgres_service, s3_client)
+    user_id = 0
+    data = await dsm.list_files(user_id=user_id, location="datcore")
+    assert len(data)
 
-
+    #pdb.set_trace()
+    fmd_to_get = data[0]
+    url = await dsm.download_link(user_id, fmd_to_get, "datcore")
+    print(url)
 
 
     

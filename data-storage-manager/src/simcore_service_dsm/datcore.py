@@ -166,17 +166,27 @@ class DatcoreClient(object):
         """
 
         # pylint: disable = E1101
+        url = self.download_link(source, filename)
+        if url:
+            _file = urllib.URLopener()
+            _file.retrieve(url, destination_path)
+            return True
+        return False
+
+    def download_link(self, source, filename):
+        """
+            returns presigned url for download, source is a dataset
+        """
+
+        # pylint: disable = E1101
         
         for item in source:
             if item.name == filename:
                 file_desc = self.client._api.packages.get_sources(item.id)[0]
                 url = self.client._api.packages.get_presigned_url_for_file(item.id, file_desc.id)
-                print url
-
-                _file = urllib.URLopener()
-                _file.retrieve(url, destination_path)
-                return True
-        return False
+                return url
+        
+        return ""
         
     def exists_file(self, source, filename):
         """
